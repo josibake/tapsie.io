@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
@@ -24,19 +25,37 @@ func getPort() (string, error) {
 }
 
 // get markers based on an id
-func getMarkers(id int) []Marker {
+// this is a fake function for now
+// will be replaced with something that queries the database
+func getMarkers(amenities []string) []Marker {
 	// mock data for testing
-	markers := []Marker{
-		{Lat: 47.608013, Long: -122.335167},
-		{Lat: 37.5483, Long: -121.9886},
+	var markers []Marker
+	if amenities[0] == "dogs" {
+		markers = []Marker{
+			{Lat: 47.608013, Long: -122.335167},
+		}
+	}
+	if len(amenities) > 1 && amenities[1] == "kids" {
+		markers = []Marker{
+			{Lat: 37.5483, Long: -121.9886},
+			{Lat: 47.608013, Long: -122.335167},
+		}
 	}
 	return markers
 }
 
 // return markers when a new request comes in
 func markerHandler(w http.ResponseWriter, r *http.Request) {
-	markers := getMarkers(123)
-	json.NewEncoder(w).Encode(markers)
+	keys, ok := r.URL.Query()["amenities"]
+	if ok {
+		fmt.Println(keys)
+		markers := getMarkers(keys)
+		json.NewEncoder(w).Encode(markers)
+	} else {
+		// return all markers
+		markers := getMarkers([]string{"dogs", "kids"})
+		json.NewEncoder(w).Encode(markers)
+	}
 }
 
 func main() {
@@ -47,10 +66,13 @@ func main() {
 	}
 	log.Printf("listening on %s...", port[1:])
 
-	// return an array of markers
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	// create the router
+	router := mux.NewRouter().StrictSlash(true)
+
+	// default
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "hello, world!")
 	})
-	http.HandleFunc("/breweries", markerHandler)
-	http.ListenAndServe(port, nil)
+	router.HandleFunc("/breweries", markerHandler)
+	http.ListenAndServe(port, router)
 }

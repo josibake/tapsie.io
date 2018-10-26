@@ -32,3 +32,4 @@
 [metadata.heroku]
   root-package = "github.com/josibake/tapsie"
   go-version = "go1.11.1"
+  install = ["."]
